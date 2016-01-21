@@ -18,6 +18,8 @@ wheelRadius = 15; % cm (running wheel)
 
 rotaryEncoderResolution = 360; % number of ticks for one revolution
 
+% incorporate block.inputSensorGain?
+
 pos = pos/rotaryEncoderResolution*2*pi*wheelRadius; % convert to cm
 
 %% find velocity and acceleration
