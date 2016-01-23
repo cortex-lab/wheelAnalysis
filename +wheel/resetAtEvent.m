@@ -15,9 +15,10 @@ end
 
 % find the next t after each eventTimes
 [~,ii] = sort([t eventTimes]);
-eventTs = ii(length(t)+1:end)+1;
+[~,ii2] = sort(ii);
+eventTs = ii2(length(t)+1:end)+1-(0:length(eventTimes)-1);
 
-posAtEvents = zeros(size(pos));
-posAtEvents(eventTs) = pos(eventTs);
+posAtEvents = zeros(size(pos)); 
+posAtEvents(eventTs) = diff([0 pos(eventTs)]);
 
 posRel = pos-cumsum(posAtEvents);
