@@ -77,14 +77,18 @@ plot(xx,yy*diff(yl)+yl(1));
 
 %% compute event triggered average and plot some traces
 
+interactiveStart = [tr.interactiveStartedTime];
 responseMade = [tr.responseMadeTime];
-responseMadeStartTime = zeros(size(responseMade));
+responseMadeStartTime = nan(size(responseMade));
 for r = 1:length(responseMade)
-    responseMadeStartTime(r) = moveTimes(1,find(moveTimes(1,:)<responseMade(r),1,'last'));
+    theseMoves = find(moveTimes(1,:)>interactiveStart(r) & moveTimes(1,:)<responseMade(r));
+    if ~isempty(theseMoves)
+        responseMadeStartTime(r) = moveTimes(1,theseMoves(end));
+    end
 end
 window = [0 0.7];
 
-[thisTr, thisStd, allT] = eventTrigAvgAllTraces(posRel, responseMadeStartTime-t(1), window, Fs);
+[thisTr, thisStd, allT] = eventTrigAvgAllTraces(posRel, responseMadeStartTime(~isnan(responseMadeStartTime))-t(1), window, Fs);
 
 timepnts = (1:numel(thisTr))/Fs+window(1);
 
