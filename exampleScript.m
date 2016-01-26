@@ -5,9 +5,7 @@
 %% pull the wheel data from a block
 
 rawPos = block.inputSensorPositions;
-if any(rawPos>2^30) % correction because sometimes negative wheel positions wrap around
-    rawPos(rawPos>2^30) = rawPos(rawPos>2^30)-2^32;
-end
+rawPos = correctCounterDiscont(rawPos); % correction because sometimes negative wheel positions wrap around
 rawTimes = block.inputSensorPositionTimes;
 
 %% interpolate it to be regularly sampled
@@ -16,14 +14,12 @@ Fs = 1000;
 t = rawTimes(1):1/Fs:rawTimes(end);
 pos = interp1(rawTimes, rawPos, t, 'linear');
 
-wheelRadius = 5; % cm (burgess wheel)
-wheelRadius = 15; % cm (running wheel)
+wheelRadius = 31; % mm (burgess wheel) (measured by Chris)
+wheelRadius = 150; % mm (running wheel) (guess!)
 
-rotaryEncoderResolution = 360; % number of ticks for one revolution
+rotaryEncoderResolution = 360*4; % number of ticks for one revolution (factor of 4 is according to CB)
 
-% incorporate block.inputSensorGain?
-
-pos = pos./rotaryEncoderResolution*2*pi*wheelRadius; % convert to cm
+pos = pos./(rotaryEncoderResolution*4)*2*pi*wheelRadius; % convert to mm
 
 nSampToPlot = min(50000, length(pos));
 
@@ -42,13 +38,13 @@ subplot(3,1,2);
 plot(t(1:nSampToPlot), vel(1:nSampToPlot));
 xlim([t(1) t(nSampToPlot)]);
 xlabel('time (sec)'); 
-ylabel('wheel velocity (cm/sec)');
+ylabel('wheel velocity (mm/sec)');
 
 subplot(3,1,3);
 plot(t(1:nSampToPlot), acc(1:nSampToPlot));
 xlim([t(1) t(nSampToPlot)]);
 xlabel('time (sec)'); 
-ylabel('wheel acceleration (cm/sec/sec)');
+ylabel('wheel acceleration (mm/sec/sec)');
 
 %% make the position signal be relative to a particular time(s)
 tr = [block.trial];
