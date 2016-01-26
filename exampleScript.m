@@ -5,7 +5,7 @@
 %% pull the wheel data from a block
 
 rawPos = block.inputSensorPositions;
-rawPos = correctCounterDiscont(rawPos); % correction because sometimes negative wheel positions wrap around
+rawPos = wheel.correctCounterDiscont(rawPos); % correction because sometimes negative wheel positions wrap around
 rawTimes = block.inputSensorPositionTimes;
 
 %% interpolate it to be regularly sampled
