@@ -19,7 +19,7 @@ wheelRadius = 150; % mm (running wheel) (guess!)
 
 rotaryEncoderResolution = 360*4; % number of ticks for one revolution (factor of 4 is according to CB)
 
-pos = pos./(rotaryEncoderResolution*4)*2*pi*wheelRadius; % convert to mm
+pos = pos./(rotaryEncoderResolution)*2*pi*wheelRadius; % convert to mm
 
 nSampToPlot = min(50000, length(pos));
 
@@ -28,7 +28,7 @@ subplot(3,1,1);
 plot(t(1:nSampToPlot), pos(1:nSampToPlot));
 xlim([t(1) t(nSampToPlot)]);
 xlabel('time (sec)'); 
-ylabel('wheel position (cm)');
+ylabel('wheel position (mm)');
 
 %% find velocity and acceleration
 
@@ -66,7 +66,7 @@ plot(t(1:nSampToPlot), pos(1:nSampToPlot));
 hold on;
 xlim([t(1) t(nSampToPlot)]);
 xlabel('time (sec)'); 
-ylabel('wheel position (cm)');
+ylabel('wheel position (mm)');
 yl = ylim();
 [xx,yy] = rasterize(moveTimes(1,moveTimes(1,:)<t(nSampToPlot))); 
 plot(xx,yy*diff(yl)+yl(1));
