@@ -95,6 +95,7 @@ if makePlots
     inMove = logical(WithinRanges(t, [moveOnsets; moveOffsets]'));
     plot(t(inMove), pos(inMove), 'r.');
     plot(t(~inMove), pos(~inMove), 'k.');
+    ylabel('position');
     
     ax2 = subplot(2,1,2);
     vel = wheel.computeVelocity2(pos, 0.015, Fs);
@@ -103,6 +104,8 @@ if makePlots
     plot(moveOffsets, vel(moveOffsetSamps), 'bo');
     plot(t(inMove), vel(inMove), 'r.');
     plot(t(~inMove), vel(~inMove), 'k.');
+    ylabel('velocity');
+    xlabel('time (sec)');
     
     linkaxes([ax1 ax2], 'x');
 end
