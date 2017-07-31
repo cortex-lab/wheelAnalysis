@@ -18,13 +18,18 @@ posThreshOnset = 1.5; % a lower threshold, used when finding exact onset times.
 minDur = 0.05; % seconds, movements shorter than this are dropped
 makePlots = false;
 
-fn = fieldnames(params);
-for f = 1:length(fn)
-    eval(sprintf('%s = params.%s;', fn{f}, fn{f}));
+if ~isempty(params)
+    fn = fieldnames(params);
+    for f = 1:length(fn)
+        eval(sprintf('%s = params.%s;', fn{f}, fn{f}));
+    end
 end
 
-% let's go back to original representation of wheel for this
-
+% first compute an evenly-sampled position (in case that's not what was
+% provided, if it is, that's ok this is fast) and velocity
+rawT = t; rawPos = pos; 
+t = rawT(1):1/Fs:rawT(end);
+pos = interp1(rawT, rawPos, t);
 
 
 tThreshSamps = round(tThresh*Fs);

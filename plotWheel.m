@@ -53,6 +53,11 @@ else
     colors(4,:) = [0 0 0]; % flinches, black
     moveType(moveType==0) = 4;
     
+    % not in any move? gray
+    inMove = logical(WithinRanges(t, [moveOnsets; moveOffsets]'));
+    plot(ax1, t(~inMove), pos(~inMove), '.', 'Color', 0.8*[1 1 1]);
+    plot(ax2, t(~inMove), vel(~inMove), '.', 'Color', 0.8*[1 1 1]);
+    
     for r = 1:4
         inMove = logical(WithinRanges(t, [moveOnsets(moveType==r); moveOffsets(moveType==r)]'));
         plot(ax1, t(inMove), pos(inMove), '.', 'Color', colors(r,:));
