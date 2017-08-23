@@ -21,9 +21,9 @@ pos = interp1(rawT, rawPos, t);
 vel = wheel.computeVelocity2(pos, 0.015, Fs);
 
 if ~isempty(detectedMoves)
-    if isfield(detectedMoves, 'moveOnsets'); moveOnsets = detectedMoves.moveOnsets; else; moveOnsets = []; end;
-    if isfield(detectedMoves, 'moveOffsets'); moveOffsets = detectedMoves.moveOffsets; else; moveOffsets = []; end;
-    if isfield(detectedMoves, 'moveType'); moveType = detectedMoves.moveType; else; moveType = []; end;
+    if isfield(detectedMoves, 'moveOnsets'); moveOnsets = detectedMoves.moveOnsets(:); else; moveOnsets = []; end;
+    if isfield(detectedMoves, 'moveOffsets'); moveOffsets = detectedMoves.moveOffsets(:); else; moveOffsets = []; end;
+    if isfield(detectedMoves, 'moveType'); moveType = detectedMoves.moveType(:); else; moveType = []; end;
 end
 
 h = figure; 
@@ -41,7 +41,7 @@ if ~isempty(moveOffsets)
 end
 if isempty(moveType) 
     % in this case just plot in and out of move as black and gray
-    inMove = logical(WithinRanges(t, [moveOnsets; moveOffsets]'));
+    inMove = logical(WithinRanges(t, [moveOnsets moveOffsets]));
     plot(ax1,t(inMove), pos(inMove), '.', 'Color', [0 0.5 1]);
     plot(ax1,t(~inMove), pos(~inMove), '.', 'Color', 0.8*[1 1 1]);
     plot(ax2, t(inMove), vel(inMove), '.', 'Color', [0 0.5 1]);
@@ -54,12 +54,12 @@ else
     moveType(moveType==0) = 4;
     
     % not in any move? gray
-    inMove = logical(WithinRanges(t, [moveOnsets; moveOffsets]'));
+    inMove = logical(WithinRanges(t, [moveOnsets moveOffsets]));
     plot(ax1, t(~inMove), pos(~inMove), '.', 'Color', 0.8*[1 1 1]);
     plot(ax2, t(~inMove), vel(~inMove), '.', 'Color', 0.8*[1 1 1]);
     
     for r = 1:4
-        inMove = logical(WithinRanges(t, [moveOnsets(moveType==r); moveOffsets(moveType==r)]'));
+        inMove = logical(WithinRanges(t, [moveOnsets(moveType==r) moveOffsets(moveType==r)]));
         plot(ax1, t(inMove), pos(inMove), '.', 'Color', colors(r,:));
         plot(ax2, t(inMove), vel(inMove), '.', 'Color', colors(r,:));
     end    

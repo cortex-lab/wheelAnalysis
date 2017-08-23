@@ -82,6 +82,9 @@ moveOnsetSamps = moveOnsetSamps([true ~gapTooSmall]);
 moveOffsets = moveOffsets([~gapTooSmall true]); % always keep last offset
 moveOffsetSamps = moveOffsetSamps([~gapTooSmall true]); % always keep last offset
 
+moveOnsets = moveOnsets(:); % return a column
+moveOffsets = moveOffsets(:); % return a column
+
 % see how it looks
 if makePlots
     figure; 

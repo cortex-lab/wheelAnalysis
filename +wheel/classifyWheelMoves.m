@@ -12,6 +12,9 @@ function moveType = classifyWheelMoves(t, pos, moveOnsets, moveOffsets, intStart
 
 crossWindow = 0.5; % time you have to cross the threshold in order to count
 
+moveOnsets = moveOnsets(:); 
+moveOffsets = moveOffsets(:); 
+
 % determine the threshold (empirically)
 trialsWithMove = resp==1|resp==2;% only left or right
 respTime = respTime(trialsWithMove); 
@@ -35,7 +38,7 @@ pos = interp1(rawT, rawPos, t);
 win = [0 crossWindow];
 winSamps = win(1):1/Fs:win(2);
 nM = numel(moveOnsets);
-wheelSamps = bsxfun(@plus, moveOnsets', winSamps);
+wheelSamps = bsxfun(@plus, moveOnsets(:), winSamps);
 wheelMoves = interp1(t, pos, wheelSamps); % position trace triggered on move onset
 wheelMoves = bsxfun(@minus, wheelMoves, wheelMoves(:,1)); % start of movement is zero
 
