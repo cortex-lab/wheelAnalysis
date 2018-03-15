@@ -1,7 +1,7 @@
 
 
-function [moveOnsets moveOffsets] = findWheelMoves3(pos, t, Fs, params)
-% function [moveOnsets moveOffsets] = findWheelMoves3(pos, t, Fs, params)
+function [moveOnsets, moveOffsets, moveAmps, peakVelTimes] = findWheelMoves3(pos, t, Fs, params)
+% function [moveOnsets, moveOffsets] = findWheelMoves3(pos, t, Fs, params)
 %
 % algorithm is: for each point, is there >posThresh max movement in the next 
 % tThresh seconds. If there is, then that tThresh window is part of a
@@ -9,6 +9,15 @@ function [moveOnsets moveOffsets] = findWheelMoves3(pos, t, Fs, params)
 % moving, jump ahead by tThresh and look backwards in time until you find a
 % point that's very close to the starting point (different by
 % <posThreshOnset). Finally, drop movements that are too brief. 
+% 
+% params can include:
+% - posThresh = 8; % if position changes by less than this
+% - tThresh = 0.2; % over at least this much time, then it is a quiescent period
+% - minGap = 0.1; % any movements that have this little time between the end of one and
+%     % the start of the next, we'll join them
+% - posThreshOnset = 1.5; % a lower threshold, used when finding exact onset times.     
+% - minDur = 0.05; % seconds, movements shorter than this are dropped
+% - makePlots = false;
 
 posThresh = 8; % if position changes by less than this
 tThresh = 0.2; % over at least this much time, then it is a quiescent period
@@ -84,6 +93,13 @@ moveOffsetSamps = moveOffsetSamps([~gapTooSmall true]); % always keep last offse
 
 moveOnsets = moveOnsets(:); % return a column
 moveOffsets = moveOffsets(:); % return a column
+
+moveAmps = pos(moveOffsetSamps)-pos(moveOnsetSamps);
+vel = conv(diff([0 pos]), gausswin(10), 'same');
+for m = 1:numel(moveOnsets)
+    thisV = abs(vel(moveOnsetSamps(m):moveOffsetSamps(m)));
+    peakVelTimes(m) = moveOnsets(m)+find(thisV==max(thisV),1)/Fs;
+end
 
 % see how it looks
 if makePlots

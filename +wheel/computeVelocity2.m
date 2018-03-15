@@ -10,11 +10,11 @@ function [vel, acc] = computeVelocity2(pos, smoothSize, Fs)
 % don't change
 % smoothWin = gausswin(smoothSize)./sum(gausswin(smoothSize));
 smoothWin = myGaussWin(smoothSize, Fs); 
-
-vel = [0 conv(diff(pos), smoothWin, 'same')]*Fs; % multiply by Fs to get cm/sec
+pos = pos(:);
+vel = [0; conv(diff(pos), smoothWin, 'same')]*Fs; % multiply by Fs to get cm/sec
 
 if nargout>1
     % here we choose to apply the smoothing again - it's sort of
     % empirically necessary since derivatives amplify noise. 
-    acc = [0 conv(diff(vel), smoothWin, 'same')]*Fs; %cm/sec^2
+    acc = [0; conv(diff(vel), smoothWin, 'same')]*Fs; %cm/sec^2
 end
