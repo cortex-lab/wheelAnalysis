@@ -8,7 +8,7 @@ function [vel, acc] = computeVelocity(pos, smoothSize, Fs)
 
 % area of this smoothing window is 1 so total values are unchanged - units
 % don't change
-smoothWin = gausswin(smoothSize)./sum(gausswin(smoothSize));
+smoothWin = wheel.gausswin(smoothSize)./sum(gausswin(smoothSize));
 
 vel = [0 conv(diff(pos), smoothWin, 'same')]*Fs; % multiply by Fs to get cm/sec
 
