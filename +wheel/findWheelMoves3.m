@@ -1,5 +1,3 @@
-
-
 function [moveOnsets, moveOffsets, moveAmps, peakVelTimes] = findWheelMoves3(pos, t, Fs, params)
 % function [moveOnsets, moveOffsets] = findWheelMoves3(pos, t, Fs, params)
 %
@@ -40,11 +38,28 @@ rawT = t; rawPos = pos;
 t = rawT(1):1/Fs:rawT(end);
 pos = interp1(rawT, rawPos, t);
 
-
+%%
 tThreshSamps = round(tThresh*Fs);
-wheelToep = toeplitz(fliplr(pos), nan(1,tThreshSamps));
-wheelToep = flipud(wheelToep);
-totalDev = max(wheelToep,[],2)-min(wheelToep,[],2);
+
+%% This makes it quite ugly, but memory controlled and reasonably fast
+% as computing the full Toeplitz blows up memory for a long timeserie.
+% This is stricly equivalent to the 3 lines commented below.
+% wheelToep = toeplitz(fliplr(pos), nan(1,tThreshSamps));
+% wheelToep = flipud(wheelToep);
+% totalDev = max(wheelToep,[],2)-min(wheelToep,[],2);
+warning('off','MATLAB:toeplitz:DiagonalConflict')
+totalDev = zeros(length(t),1);
+batch_size = 10000;
+c = 0;
+while 1
+    i2proc = [1:batch_size] + c;
+    i2proc (i2proc > length(t)) = [];
+    w2e = flipud(toeplitz(fliplr(pos(i2proc)), nan(1,tThreshSamps)));
+    totalDev(flipud(i2proc)) = max(w2e,[],2)-min(w2e,[],2);
+    c = c + batch_size - tThreshSamps;
+    if i2proc(end)==length(t), break, end
+end
+
 isMoving = totalDev>posThresh;
 isMoving = [false; isMoving]; 
 isMoving(end) = false; % make sure we end on an offset
@@ -61,11 +76,34 @@ end
 % - starting from the end of the tThresh window, look back until you find
 % one that's not different from the moveOnset, by some smaller threshold.
 moveOnsetSamps = find(~isMoving(1:end-1) & isMoving(2:end));
-wheelToepOnsets = wheelToep(moveOnsetSamps,:);
-wheelToepOnsetsDev = abs(bsxfun(@minus, wheelToepOnsets, wheelToepOnsets(:,1)));
+
+% Same as above, this is to replace the two lines below in a memory 
+%controlled way without looping on every sample
+%wheelToepOnsets = wheelToep(moveOnsetSamps,:);
+%wheelToepOnsetsDev = abs(bsxfun(@minus, wheelToepOnsets, wheelToepOnsets(:,1)));
+%%
+wheelToepOnsetsDev = zeros(length(moveOnsetSamps), tThreshSamps);
+batch_size = 10000;
+c = 0; cwt = 0;
+while 1
+    if isempty(moveOnsetSamps), break, end
+    i2proc = [1:batch_size] + c;
+    [icomm] = intersect(i2proc(1:end-tThreshSamps-1), moveOnsetSamps);
+    [~, itpltz] = intersect(flipud(i2proc(1:end-tThreshSamps-1)), moveOnsetSamps);
+    i2proc (i2proc > length(t)) = [];
+    if ~isempty(icomm)        
+        w2e = flipud(toeplitz(fliplr(pos(i2proc)), nan(1,tThreshSamps)));
+        w2e = abs(bsxfun(@minus,w2e, w2e(:,1)));
+        wheelToepOnsetsDev(cwt+[1:length(icomm)],:) =  w2e(itpltz,:);
+        cwt = cwt + length(icomm);
+    end
+    c = c + batch_size - tThreshSamps;
+    if i2proc(end)>=moveOnsetSamps(end), break, end
+end
+warning('on','MATLAB:toeplitz:DiagonalConflict')
+
 hasOnset = wheelToepOnsetsDev>posThreshOnset;
 [a, b] = find(~fliplr(hasOnset));
-onsetLags = tThreshSamps-accumarray(a, b, [], @min);
 moveOnsetSamps = moveOnsetSamps+onsetLags;
 moveOnsets = t(moveOnsetSamps);
 
@@ -86,21 +124,22 @@ moveGaps = moveOnsets(2:end)-moveOffsets(1:end-1);
 gapTooSmall = moveGaps<minGap;
 % for these, drop the offending offset and onset, which effectively joins
 % the two
-moveOnsets = moveOnsets([true ~gapTooSmall]); % always keep first onset
-moveOnsetSamps = moveOnsetSamps([true ~gapTooSmall]); 
-moveOffsets = moveOffsets([~gapTooSmall true]); % always keep last offset
-moveOffsetSamps = moveOffsetSamps([~gapTooSmall true]); % always keep last offset
-
+if ~isempty(moveOnsets)
+    moveOnsets = moveOnsets([true ~gapTooSmall]); % always keep first onset
+    moveOnsetSamps = moveOnsetSamps([true ~gapTooSmall]);
+    moveOffsets = moveOffsets([~gapTooSmall true]); % always keep last offset
+    moveOffsetSamps = moveOffsetSamps([~gapTooSmall true]); % always keep last offset
+end
 moveOnsets = moveOnsets(:); % return a column
 moveOffsets = moveOffsets(:); % return a column
 
 moveAmps = pos(moveOffsetSamps)-pos(moveOnsetSamps);
-vel = conv(diff([0 pos]), gausswin(10), 'same');
+vel = conv(diff([0 pos]), wheel.gausswin(10), 'same');
 for m = 1:numel(moveOnsets)
     thisV = abs(vel(moveOnsetSamps(m):moveOffsetSamps(m)));
     peakVelTimes(m) = moveOnsets(m)+find(thisV==max(thisV),1)/Fs;
 end
-
+%%
 % see how it looks
 if makePlots
     figure; 
