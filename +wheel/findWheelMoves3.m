@@ -104,6 +104,7 @@ warning('on','MATLAB:toeplitz:DiagonalConflict')
 
 hasOnset = wheelToepOnsetsDev>posThreshOnset;
 [a, b] = find(~fliplr(hasOnset));
+onsetLags = tThreshSamps-accumarray(a(:), b(:), [], @min);
 moveOnsetSamps = moveOnsetSamps+onsetLags;
 moveOnsets = t(moveOnsetSamps);
 
