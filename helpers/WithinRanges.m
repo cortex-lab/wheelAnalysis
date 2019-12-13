@@ -1,5 +1,4 @@
 function out = WithinRanges(x, Ranges, RangeLabel, Mode)
-
 % out = WithinRanges(x, Ranges, RangeLabel, Mode)
 % detects which points of the input vector lie within
 % one of the ranges specified in the nx2 array ranges
