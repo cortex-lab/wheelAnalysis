@@ -14,7 +14,7 @@ classdef test_wheel < matlab.unittest.TestCase
   %
   %   test(m).wval = wval;
   %   test(m).wt = wt;
-  %   [mon,mof] = wheel.findWheelMoves3(test(m).wval, test(m).wt, 1000, []);
+  %   [mon,mof] = wheel.findWheelMoves3(test(m).wval, test(m).wt, 1000);
   %   test(m).mon = mon;
   %   test(m).mof = mof;
   %
@@ -42,11 +42,14 @@ classdef test_wheel < matlab.unittest.TestCase
   methods(Test)
     function test_values(testCase)
       % Loads test data and runs algorithm, then checks the onset and
-      % offset values match
+      % offset values match as well as the movement amplitudes and peak
+      % velocities.  The data are small so this test is quick.
       data = testCase.tdata(1);
-      [mon, mof] = wheel.findWheelMoves3(data.wval, data.wt, 1000, []);
-      testCase.verifyEqual(mon, data.mon)
-      testCase.verifyEqual(mof, data.mof)
+      [mon, mof, amp, vel] = wheel.findWheelMoves3(data.wval, data.wt, 1000);
+      testCase.verifyEqual(mon, data.mon, 'Unexpected movement onset times')
+      testCase.verifyEqual(mof, data.mof, 'Unexpected movement offset times')
+      testCase.verifyEqual(amp, data.amp, 'Unexpected movement amplitudes')
+      testCase.verifyEqual(vel, data.vel, 'Unexpected peak velocity times')
     end
     
     function test_memory_use(testCase)
@@ -58,21 +61,25 @@ classdef test_wheel < matlab.unittest.TestCase
       % Ensure profiler turned off on error
       testCase.addTeardown(@profile, 'off')
       profile('-memory', 'on') % Record memory usage
-      [mon, mof] = wheel.findWheelMoves3(data.wval, data.wt, 1000, []);
+      [mon, mof, amp, vel] = wheel.findWheelMoves3(data.wval, data.wt, 1000);
       info = profile('info'); % Stop profiler and gather info
       I = strcmp({info.FunctionTable.FunctionName}, 'findWheelMoves3');
       maxPeak = 25e6; % Expected peak memory should be < 25MB
       testCase.verifyLessThan(info.FunctionTable(I).PeakMem, maxPeak);
-      testCase.verifyEqual(mon, data.mon)
-      testCase.verifyEqual(mof, data.mof)
+      testCase.verifyEqual(mon, data.mon, 'Unexpected movement onset times')
+      testCase.verifyEqual(mof, data.mof, 'Unexpected movement offset times')
+      testCase.verifyEqual(amp, data.amp, 'Unexpected movement amplitudes')
+      testCase.verifyEqual(vel, data.vel, 'Unexpected peak velocity times')
     end
     
     function test_empty_dataset(testCase)
       % Tests the algorithm on a nonsense dataset
       data = testCase.tdata(3);
-      [mon,mof] = wheel.findWheelMoves3(data.wval, data.wt, 1000, []);
-      testCase.verifyEqual(mon, data.mon)
-      testCase.verifyEqual(mof, data.mof)
+      [mon, mof, amp, vel] = wheel.findWheelMoves3(data.wval, data.wt, 1000);
+      testCase.verifyEqual(mon, data.mon, 'Unexpected movement onset times')
+      testCase.verifyEqual(mof, data.mof, 'Unexpected movement offset times')
+      testCase.verifyEqual(amp, data.amp, 'Unexpected movement amplitudes')
+      testCase.verifyEqual(vel, data.vel, 'Unexpected peak velocity times')
     end
     
     function test_displacement_units(testCase)
@@ -82,9 +89,12 @@ classdef test_wheel < matlab.unittest.TestCase
       cm = @(v) v./(4*testCase.res)*2*pi*testCase.r; % convert to cm
       params.posThresh = cm(8);
       params.posThreshOnset = cm(1.5);
-      [mon, mof] = wheel.findWheelMoves3(data.wval, data.wt, 1000, params);
-      testCase.verifyEqual(mon, data.mon)
-      testCase.verifyEqual(mof, data.mof)
+      [mon, mof, amp, vel] = ...
+        wheel.findWheelMoves3(data.wval, data.wt, 1000, params);
+      testCase.verifyEqual(mon, data.mon, 'Unexpected movement onset times')
+      testCase.verifyEqual(mof, data.mof, 'Unexpected movement offset times')
+      testCase.verifyEqual(amp, data.amp, 'Unexpected movement amplitudes')
+      testCase.verifyEqual(vel, data.vel, 'Unexpected peak velocity times')
     end
   end
 end

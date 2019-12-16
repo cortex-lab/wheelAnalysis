@@ -1,5 +1,5 @@
 function [moveOnsets, moveOffsets, moveAmps, peakVelTimes] = findWheelMoves3(pos, t, Fs, varargin)
-% function [moveOnsets, moveOffsets] = findWheelMoves3(pos, t, Fs, params)
+% [moveOnsets, moveOffsets] = findWheelMoves3(pos, t, Fs, params)
 %
 % algorithm is: for each point, is there > posThresh max movement in the
 % next tThresh seconds. If there is, then that tThresh window is part of a
@@ -12,11 +12,17 @@ function [moveOnsets, moveOffsets, moveAmps, peakVelTimes] = findWheelMoves3(pos
 % - posThresh = 8; % if position changes by less than this
 % - tThresh = 0.2; % over at least this much time, then it is a quiescent period
 % - minGap = 0.1; % any movements that have this little time between the end of one and
-%     % the start of the next, we'll join them
+% % the start of the next, we'll join them
 % - posThreshOnset = 1.5; % a lower threshold, used when finding exact onset times.     
 % - minDur = 0.05; % seconds, movements shorter than this are dropped
 % - makePlots = false; % plot position and velocity showing detected movements
+% - batchSize = 10000; % compute in batches of this size.  The lager the matrix the higher
+% % the memory use, but not by much.
 
+%% Validate input
+if numel(varargin) == 1 && isempty(varargin{1})
+  varargin(1) = []; % Backward compatility for old param input
+end
 p = inputParser;
 validator = @(x) isnumeric(x) && isscalar(x) && (x > 0);
 addRequired(p, 'pos', @(x) isnumeric(x) && isvector(x));
@@ -33,43 +39,42 @@ addParameter(p, 'minGap', 0.1, validator);
 addParameter(p, 'posThreshOnset', 1.5, validator);
 % Minimum duration in second.  Movements shorter than this are dropped.
 addParameter(p, 'minDur', 0.05, validator);
+% Compute matrix in batches of this size.  The lager the matrix the higher
+% the memory use.
+addParameter(p, 'batchSize', 10000, validator);
 % Plot position and velocity showing detected movements.
 addParameter(p, 'makePlots', false, @(x) islogical(x) && isscalar(x));
 parse(p, pos, t, Fs, varargin{:});
 
-p = p.Results;
+p = p.Results; % Final parameters
 
-% posThresh = 8; 
-% tThresh = 0.2; 
-% minGap = 0.1; 
-% posThreshOnset = 1.5; 
-% minDur = 0.05; 
-% makePlots = false;
-
-% first compute an evenly-sampled position (in case that's not what was
-% provided, if it is, that's ok this is fast) and velocity
+% First compute an evenly-sampled position (in case that's not what was
+% provided, if it is, that's ok this is fast)
 rawT = t; rawPos = pos;
 t = rawT(1):1/Fs:rawT(end);
 pos = interp1(rawT, rawPos, t);
 
+% Convert the time threshold into number of samples given the sampling
+% frequency
 tThreshSamps = round(p.tThresh*Fs);
 
-%% This makes it quite ugly, but memory controlled and reasonably fast
-% Computing the full Toeplitz blows up memory for a long timeseries.
-% This is stricly equivalent to the 3 lines commented below.
+%% Compute the approximate movement onset and offset samples
+% Computing the full Toeplitz/Hankel matrix blows up memory for long
+% timeseries so we will do it in batches.  This is quite ugly, but memory
+% controlled and reasonably fast. This is stricly equivalent to the 3 lines
+% commented below:
 %   wheelToep = toeplitz(fliplr(pos), nan(1,tThreshSamps));
 %   wheelToep = flipud(wheelToep);
 %   totalDev = max(wheelToep,[],2)-min(wheelToep,[],2);
 warning('off', 'MATLAB:hankel:AntiDiagonalConflict')
-totalDev = zeros(length(t), 1);
-batchSize = 10000; % Compute Hankel in batches of this size
+totalDev = zeros(length(t), 1); % Initialize vector of total deviations
 c = 0;
 while true
-    i2proc = (1:batchSize) + c;
+    i2proc = (1:p.batchSize) + c;
     i2proc(i2proc > length(t)) = [];
     w2e = hankel(pos(i2proc), nan(1, tThreshSamps));
     totalDev(i2proc) = max(w2e, [], 2) - min(w2e, [], 2);
-    c = c + batchSize - tThreshSamps;
+    c = c + p.batchSize - tThreshSamps;
     if i2proc(end) == length(t), break, end
 end
 
@@ -85,7 +90,7 @@ for q = 1:length(tooShort)
     isMoving(moveOffsetSamps(tooShort(q)):moveOnsetSamps(tooShort(q)+1)) = true;
 end
 
-%%
+%% Compute precise movement onset samples
 % definition of move onset: 
 % - starting from the end of the tThresh window, look back until you find
 % one that's not different from the moveOnset, by some smaller threshold.
@@ -96,10 +101,9 @@ moveOnsetSamps = find(~isMoving(1:end-1) & isMoving(2:end));
 %  wheelToepOnsets = wheelToep(moveOnsetSamps,:);
 %  wheelToepOnsetsDev = abs(bsxfun(@minus, wheelToepOnsets, wheelToepOnsets(:,1)));
 wheelToepOnsetsDev = zeros(length(moveOnsetSamps), tThreshSamps);
-batchSize = 10000;
 c = 0; cwt = 0;
 while ~isempty(moveOnsetSamps)
-    i2proc = (1:batchSize) + c;
+    i2proc = (1:p.batchSize) + c;
     [icomm] = intersect( i2proc(1:end-tThreshSamps-1), moveOnsetSamps );
     [~, itpltz] = intersect( i2proc(1:end-tThreshSamps-1), moveOnsetSamps );
     i2proc(i2proc > length(t)) = [];
@@ -109,7 +113,7 @@ while ~isempty(moveOnsetSamps)
         wheelToepOnsetsDev(cwt + (1:length(icomm)), :) =  w2e(itpltz, :);
         cwt = cwt + length(icomm);
     end
-    c = c + batchSize - tThreshSamps;
+    c = c + p.batchSize - tThreshSamps;
     if i2proc(end) >= moveOnsetSamps(end), break, end
 end
 warning('on', 'MATLAB:hankel:AntiDiagonalConflict')
@@ -147,6 +151,7 @@ moveOnsets = moveOnsets(:); % return a column
 moveOffsets = moveOffsets(:); % return a column
 
 moveAmps = pos(moveOffsetSamps) - pos(moveOnsetSamps);
+moveAmps = moveAmps(:); % return a column
 vel = conv(diff([0 pos]), wheel.gausswin(10), 'same');
 peakVelTimes = nan(size(moveOnsets));
 for m = 1:numel(moveOnsets)
