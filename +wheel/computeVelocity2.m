@@ -1,4 +1,3 @@
-
 function [vel, acc] = computeVelocity2(pos, smoothSize, Fs)
 % function [vel, acc] = computeVelocity(pos, smoothSize, Fs)
 %
